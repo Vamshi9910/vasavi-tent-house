@@ -24,14 +24,19 @@ export interface CustomerData {
   totalBill: number;
 }
 
-const CustomerForm = () => {
+interface CustomerFormProps {
+  editingOrder?: CustomerData & { id: string; status: string };
+  onOrderSaved?: () => void;
+}
+
+const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
   const { toast } = useToast();
   const [customerData, setCustomerData] = useState<CustomerData>({
-    name: "",
-    phone: "",
-    village: "",
-    products: [],
-    totalBill: 0
+    name: editingOrder?.name || "",
+    phone: editingOrder?.phone || "",
+    village: editingOrder?.village || "",
+    products: editingOrder?.products || [],
+    totalBill: editingOrder?.totalBill || 0
   });
 
   const [showSummary, setShowSummary] = useState(false);
@@ -55,6 +60,46 @@ const CustomerForm = () => {
       ...prev,
       products
     }));
+  };
+
+  const handleSavePartialOrder = () => {
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    
+    if (editingOrder) {
+      // Update existing order
+      const updatedOrders = orders.map((order: any) => 
+        order.id === editingOrder.id 
+          ? { ...order, ...customerData, status: "partially_pending" }
+          : order
+      );
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      
+      toast({
+        title: "Order Updated",
+        description: "Order has been saved as partially pending",
+      });
+    } else {
+      // Create new partial order
+      const newOrder = {
+        ...customerData,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        status: "partially_pending"
+      };
+      orders.push(newOrder);
+      localStorage.setItem("orders", JSON.stringify(orders));
+      
+      toast({
+        title: "Order Saved",
+        description: "Order has been saved as partially pending",
+      });
+    }
+
+    if (onOrderSaved) {
+      onOrderSaved();
+    }
+
+    console.log("Order saved as partially pending:", customerData);
   };
 
   const handleSubmitOrder = () => {
@@ -85,16 +130,27 @@ const CustomerForm = () => {
       return;
     }
 
-    // Store order in localStorage for demo (will be replaced with database)
     const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const newOrder = {
-      ...customerData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      status: "pending"
-    };
-    orders.push(newOrder);
-    localStorage.setItem("orders", JSON.stringify(orders));
+    
+    if (editingOrder) {
+      // Update existing order to pending
+      const updatedOrders = orders.map((order: any) => 
+        order.id === editingOrder.id 
+          ? { ...order, ...customerData, status: "pending" }
+          : order
+      );
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    } else {
+      // Create new pending order
+      const newOrder = {
+        ...customerData,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        status: "pending"
+      };
+      orders.push(newOrder);
+      localStorage.setItem("orders", JSON.stringify(orders));
+    }
 
     setShowSummary(true);
     
@@ -103,7 +159,7 @@ const CustomerForm = () => {
       description: "WhatsApp and SMS notifications will be sent to the customer",
     });
 
-    console.log("Order submitted:", newOrder);
+    console.log("Order submitted:", customerData);
     console.log("Triggering WhatsApp and SMS for:", customerData.phone);
   };
 
@@ -116,6 +172,9 @@ const CustomerForm = () => {
       totalBill: 0
     });
     setShowSummary(false);
+    if (onOrderSaved) {
+      onOrderSaved();
+    }
   };
 
   if (showSummary) {
@@ -162,7 +221,10 @@ const CustomerForm = () => {
         </CardContent>
       </Card>
 
-      <ProductTable onProductsUpdate={handleProductsUpdate} />
+      <ProductTable 
+        onProductsUpdate={handleProductsUpdate} 
+        initialProducts={editingOrder?.products}
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -186,14 +248,22 @@ const CustomerForm = () => {
               </span>
             </div>
           </div>
-          <Button 
-            onClick={handleSubmitOrder}
-            className="w-full mt-4"
-            size="lg"
-            disabled={customerData.totalBill === 0 || customerData.products.length === 0}
-          >
-            Register Order & Send Notifications
-          </Button>
+          <div className="flex gap-2 mt-4">
+            <Button 
+              onClick={handleSavePartialOrder}
+              variant="outline"
+              className="flex-1"
+            >
+              Save as Draft
+            </Button>
+            <Button 
+              onClick={handleSubmitOrder}
+              className="flex-1"
+              disabled={customerData.totalBill === 0 || customerData.products.length === 0}
+            >
+              {editingOrder ? "Update & Send Notifications" : "Register Order & Send Notifications"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

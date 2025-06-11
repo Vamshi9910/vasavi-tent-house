@@ -18,10 +18,22 @@ const PREDEFINED_PRODUCTS = [
 
 interface ProductTableProps {
   onProductsUpdate: (products: Product[]) => void;
+  initialProducts?: Product[];
 }
 
-const ProductTable = ({ onProductsUpdate }: ProductTableProps) => {
+const ProductTable = ({ onProductsUpdate, initialProducts }: ProductTableProps) => {
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
+  // Initialize quantities from initial products
+  useEffect(() => {
+    if (initialProducts) {
+      const initialQuantities: { [key: string]: number } = {};
+      initialProducts.forEach(product => {
+        initialQuantities[product.id] = product.quantity;
+      });
+      setQuantities(initialQuantities);
+    }
+  }, [initialProducts]);
 
   const handleQuantityChange = (productId: string, quantity: number) => {
     setQuantities(prev => ({
@@ -35,7 +47,7 @@ const ProductTable = ({ onProductsUpdate }: ProductTableProps) => {
       .filter(product => quantities[product.id] > 0)
       .map(product => ({
         ...product,
-        price: 0, // Set to 0 since we're not using price
+        price: 0,
         quantity: quantities[product.id]
       }));
     

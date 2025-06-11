@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Users, ShoppingCart, Clock, CheckCircle2 } from "lucide-react";
+import { Search, Users, ShoppingCart, Clock, CheckCircle2, Edit, FileText } from "lucide-react";
+import CustomerForm from "./CustomerForm";
 
 interface Order {
   id: string;
@@ -13,20 +14,22 @@ interface Order {
   phone: string;
   village: string;
   products: Array<{
+    id: string;
     name: string;
     quantity: number;
     price: number;
   }>;
   totalBill: number;
   createdAt: string;
-  status: "pending" | "completed";
+  status: "partially_pending" | "pending" | "completed";
 }
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "partially_pending" | "pending" | "completed">("all");
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const loadOrders = () => {
@@ -35,7 +38,6 @@ const AdminDashboard = () => {
     };
 
     loadOrders();
-    // Refresh orders every 5 seconds to simulate real-time updates
     const interval = setInterval(loadOrders, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -55,7 +57,16 @@ const AdminDashboard = () => {
     });
 
     console.log("Order marked as completed:", orderId);
-    console.log("Stopping automated reminders for order:", orderId);
+  };
+
+  const handleEditOrder = (order: Order) => {
+    setEditingOrder(order);
+  };
+
+  const handleOrderSaved = () => {
+    setEditingOrder(null);
+    const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+    setOrders(savedOrders);
   };
 
   const filteredOrders = orders.filter(order => {
@@ -70,15 +81,33 @@ const AdminDashboard = () => {
 
   const stats = {
     total: orders.length,
+    partiallyPending: orders.filter(o => o.status === "partially_pending").length,
     pending: orders.filter(o => o.status === "pending").length,
     completed: orders.filter(o => o.status === "completed").length,
     totalRevenue: orders.reduce((sum, order) => sum + order.totalBill, 0)
   };
 
+  if (editingOrder) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setEditingOrder(null)} variant="outline">
+            ← Back to Dashboard
+          </Button>
+          <h2 className="text-xl font-semibold">Editing Order: {editingOrder.name}</h2>
+        </div>
+        <CustomerForm 
+          editingOrder={editingOrder} 
+          onOrderSaved={handleOrderSaved}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -86,6 +115,18 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Orders</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-gray-600" />
+              <div>
+                <p className="text-sm text-muted-foreground">Draft</p>
+                <p className="text-2xl font-bold">{stats.partiallyPending}</p>
               </div>
             </div>
           </CardContent>
@@ -150,6 +191,13 @@ const AdminDashboard = () => {
                 All
               </Button>
               <Button
+                variant={filterStatus === "partially_pending" ? "default" : "outline"}
+                onClick={() => setFilterStatus("partially_pending")}
+                size="sm"
+              >
+                Draft
+              </Button>
+              <Button
                 variant={filterStatus === "pending" ? "default" : "outline"}
                 onClick={() => setFilterStatus("pending")}
                 size="sm"
@@ -187,11 +235,14 @@ const AdminDashboard = () => {
                       {order.phone} • {order.village}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={order.status === "pending" ? "secondary" : "default"}>
-                      {order.status}
+                  <div className="text-right flex flex-col gap-2">
+                    <Badge variant={
+                      order.status === "partially_pending" ? "outline" :
+                      order.status === "pending" ? "secondary" : "default"
+                    }>
+                      {order.status === "partially_pending" ? "draft" : order.status}
                     </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -213,15 +264,25 @@ const AdminDashboard = () => {
                   
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="font-bold text-lg">Total: ₹{order.totalBill.toFixed(2)}</span>
-                    {order.status === "pending" && (
+                    <div className="flex gap-2">
                       <Button 
-                        onClick={() => markOrderCompleted(order.id)}
+                        onClick={() => handleEditOrder(order)}
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700"
+                        variant="outline"
                       >
-                        Mark as Completed
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
                       </Button>
-                    )}
+                      {order.status === "pending" && (
+                        <Button 
+                          onClick={() => markOrderCompleted(order.id)}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Mark as Completed
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
