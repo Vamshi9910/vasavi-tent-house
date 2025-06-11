@@ -43,12 +43,17 @@ const CustomerForm = () => {
     }));
   };
 
-  const handleProductsUpdate = (products: Product[]) => {
-    const totalBill = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+  const handleBillAmountChange = (amount: number) => {
     setCustomerData(prev => ({
       ...prev,
-      products,
-      totalBill
+      totalBill: amount
+    }));
+  };
+
+  const handleProductsUpdate = (products: Product[]) => {
+    setCustomerData(prev => ({
+      ...prev,
+      products
     }));
   };
 
@@ -62,10 +67,19 @@ const CustomerForm = () => {
       return;
     }
 
-    if (customerData.products.length === 0 || customerData.totalBill === 0) {
+    if (customerData.products.length === 0) {
       toast({
         title: "No Products Selected",
         description: "Please select at least one product with quantity",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (customerData.totalBill <= 0) {
+      toast({
+        title: "Invalid Bill Amount",
+        description: "Please enter a valid bill amount",
         variant: "destructive"
       });
       return;
@@ -152,17 +166,31 @@ const CustomerForm = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-lg font-semibold">Total Bill:</span>
-            <span className="text-2xl font-bold text-green-600">
-              ₹{customerData.totalBill.toFixed(2)}
-            </span>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="billAmount">Total Bill Amount</Label>
+              <Input
+                id="billAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter total bill amount"
+                value={customerData.totalBill || ""}
+                onChange={(e) => handleBillAmountChange(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold">Total Bill:</span>
+              <span className="text-2xl font-bold text-green-600">
+                ₹{customerData.totalBill.toFixed(2)}
+              </span>
+            </div>
           </div>
           <Button 
             onClick={handleSubmitOrder}
-            className="w-full"
+            className="w-full mt-4"
             size="lg"
-            disabled={customerData.totalBill === 0}
+            disabled={customerData.totalBill === 0 || customerData.products.length === 0}
           >
             Register Order & Send Notifications
           </Button>
