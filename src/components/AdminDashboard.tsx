@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ interface Order {
     name: string;
     quantity: number;
     price: number;
+    receivedQuantity?: number;
   }>;
   totalBill: number;
   createdAt: string;
@@ -57,6 +57,38 @@ const AdminDashboard = () => {
     });
 
     console.log("Order marked as completed:", orderId);
+  };
+
+  const handleReceivedQuantityChange = (orderId: string, productId: string, receivedQuantity: number) => {
+    const updatedOrders = orders.map(order => {
+      if (order.id === orderId) {
+        const updatedProducts = order.products.map(product => 
+          product.id === productId 
+            ? { ...product, receivedQuantity: Math.min(receivedQuantity, product.quantity) }
+            : product
+        );
+        return { ...order, products: updatedProducts };
+      }
+      return order;
+    });
+    
+    setOrders(updatedOrders);
+    localStorage.setItem("orders", JSON.stringify(updatedOrders));
+  };
+
+  const markDraftAsComplete = (orderId: string) => {
+    const updatedOrders = orders.map(order => 
+      order.id === orderId 
+        ? { ...order, status: "pending" as const }
+        : order
+    );
+    setOrders(updatedOrders);
+    localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    
+    toast({
+      title: "Draft Marked as Complete",
+      description: "Order moved to pending status",
+    });
   };
 
   const handleEditOrder = (order: Order) => {
@@ -255,10 +287,35 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-1 gap-2">
                       {order.products.map((product, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
-                          <span>{product.name}</span>
-                          <div className="flex gap-4">
+                          <span className="font-medium">{product.name}</span>
+                          <div className="flex gap-4 items-center">
                             <span>Actual: {product.quantity}</span>
-                            {order.status === "partially_pending" && product.receivedQuantity !== undefined && (
+                            {order.status === "partially_pending" && (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <span>Received:</span>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={product.quantity}
+                                    step="0.5"
+                                    value={product.receivedQuantity || 0}
+                                    onChange={(e) => handleReceivedQuantityChange(
+                                      order.id, 
+                                      product.id, 
+                                      parseFloat(e.target.value) || 0
+                                    )}
+                                    className="w-16 h-6 text-xs"
+                                  />
+                                </div>
+                                <span className={`font-medium ${
+                                  (product.quantity - (product.receivedQuantity || 0)) > 0 ? 'text-orange-600' : 'text-green-600'
+                                }`}>
+                                  Remaining: {product.quantity - (product.receivedQuantity || 0)}
+                                </span>
+                              </>
+                            )}
+                            {order.status === "pending" && product.receivedQuantity !== undefined && (
                               <>
                                 <span>Received: {product.receivedQuantity}</span>
                                 <span className={`font-medium ${(product.quantity - product.receivedQuantity) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
@@ -283,6 +340,15 @@ const AdminDashboard = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
+                      {order.status === "partially_pending" && (
+                        <Button 
+                          onClick={() => markDraftAsComplete(order.id)}
+                          size="sm"
+                          variant="default"
+                        >
+                          Mark as Complete
+                        </Button>
+                      )}
                       {order.status === "pending" && (
                         <Button 
                           onClick={() => markOrderCompleted(order.id)}
