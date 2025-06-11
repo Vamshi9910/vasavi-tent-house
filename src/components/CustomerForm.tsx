@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ export interface Product {
   name: string;
   price: number;
   quantity: number;
+  receivedQuantity?: number;
 }
 
 export interface CustomerData {
@@ -181,6 +181,8 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
     return <OrderSummary customerData={customerData} onNewOrder={handleNewOrder} />;
   }
 
+  const isDraftOrder = editingOrder?.status === "partially_pending";
+
   return (
     <div className="space-y-6">
       <Card>
@@ -224,6 +226,7 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
       <ProductTable 
         onProductsUpdate={handleProductsUpdate} 
         initialProducts={editingOrder?.products}
+        isDraft={isDraftOrder}
       />
 
       <Card>

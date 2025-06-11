@@ -252,11 +252,21 @@ const AdminDashboard = () => {
                 <div className="space-y-3">
                   <div>
                     <h4 className="font-medium mb-2">Products:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       {order.products.map((product, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
                           <span>{product.name}</span>
-                          <span>{product.quantity} kg</span>
+                          <div className="flex gap-4">
+                            <span>Actual: {product.quantity}</span>
+                            {order.status === "partially_pending" && product.receivedQuantity !== undefined && (
+                              <>
+                                <span>Received: {product.receivedQuantity}</span>
+                                <span className={`font-medium ${(product.quantity - product.receivedQuantity) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                                  Remaining: {product.quantity - product.receivedQuantity}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
