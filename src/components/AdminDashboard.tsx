@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Users, ShoppingCart, Clock, CheckCircle2, Edit, FileText } from "lucide-react";
+import { Search, Users, ShoppingCart, Clock, CheckCircle2, Edit } from "lucide-react";
 import CustomerForm from "./CustomerForm";
 
 interface Order {
@@ -17,18 +18,17 @@ interface Order {
     name: string;
     quantity: number;
     price: number;
-    receivedQuantity?: number;
   }>;
   totalBill: number;
   createdAt: string;
-  status: "partially_pending" | "pending" | "completed";
+  status: "pending" | "completed";
 }
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "partially_pending" | "pending" | "completed">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -53,42 +53,10 @@ const AdminDashboard = () => {
     
     toast({
       title: "Order Marked as Completed",
-      description: "Automatic reminders have been stopped for this order",
+      description: "Order status updated successfully",
     });
 
     console.log("Order marked as completed:", orderId);
-  };
-
-  const handleReceivedQuantityChange = (orderId: string, productId: string, receivedQuantity: number) => {
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        const updatedProducts = order.products.map(product => 
-          product.id === productId 
-            ? { ...product, receivedQuantity: Math.min(receivedQuantity, product.quantity) }
-            : product
-        );
-        return { ...order, products: updatedProducts };
-      }
-      return order;
-    });
-    
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-  };
-
-  const markDraftAsComplete = (orderId: string) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: "pending" as const }
-        : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    
-    toast({
-      title: "Draft Marked as Complete",
-      description: "Order moved to pending status",
-    });
   };
 
   const handleEditOrder = (order: Order) => {
@@ -113,7 +81,6 @@ const AdminDashboard = () => {
 
   const stats = {
     total: orders.length,
-    partiallyPending: orders.filter(o => o.status === "partially_pending").length,
     pending: orders.filter(o => o.status === "pending").length,
     completed: orders.filter(o => o.status === "completed").length,
     totalRevenue: orders.reduce((sum, order) => sum + order.totalBill, 0)
@@ -139,7 +106,7 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -147,18 +114,6 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total Orders</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-gray-600" />
-              <div>
-                <p className="text-sm text-muted-foreground">Draft</p>
-                <p className="text-2xl font-bold">{stats.partiallyPending}</p>
               </div>
             </div>
           </CardContent>
@@ -223,13 +178,6 @@ const AdminDashboard = () => {
                 All
               </Button>
               <Button
-                variant={filterStatus === "partially_pending" ? "default" : "outline"}
-                onClick={() => setFilterStatus("partially_pending")}
-                size="sm"
-              >
-                Draft
-              </Button>
-              <Button
                 variant={filterStatus === "pending" ? "default" : "outline"}
                 onClick={() => setFilterStatus("pending")}
                 size="sm"
@@ -268,11 +216,8 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                   <div className="text-right flex flex-col gap-2">
-                    <Badge variant={
-                      order.status === "partially_pending" ? "outline" :
-                      order.status === "pending" ? "secondary" : "default"
-                    }>
-                      {order.status === "partially_pending" ? "draft" : order.status}
+                    <Badge variant={order.status === "pending" ? "secondary" : "default"}>
+                      {order.status}
                     </Badge>
                     <p className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleDateString()}
@@ -288,42 +233,7 @@ const AdminDashboard = () => {
                       {order.products.map((product, index) => (
                         <div key={index} className="flex justify-between items-center p-2 bg-muted rounded text-sm">
                           <span className="font-medium">{product.name}</span>
-                          <div className="flex gap-4 items-center">
-                            <span>Actual: {product.quantity}</span>
-                            {order.status === "partially_pending" && (
-                              <>
-                                <div className="flex items-center gap-2">
-                                  <span>Received:</span>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max={product.quantity}
-                                    step="0.5"
-                                    value={product.receivedQuantity || 0}
-                                    onChange={(e) => handleReceivedQuantityChange(
-                                      order.id, 
-                                      product.id, 
-                                      parseFloat(e.target.value) || 0
-                                    )}
-                                    className="w-16 h-6 text-xs"
-                                  />
-                                </div>
-                                <span className={`font-medium ${
-                                  (product.quantity - (product.receivedQuantity || 0)) > 0 ? 'text-orange-600' : 'text-green-600'
-                                }`}>
-                                  Remaining: {product.quantity - (product.receivedQuantity || 0)}
-                                </span>
-                              </>
-                            )}
-                            {order.status === "pending" && product.receivedQuantity !== undefined && (
-                              <>
-                                <span>Received: {product.receivedQuantity}</span>
-                                <span className={`font-medium ${(product.quantity - product.receivedQuantity) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                                  Remaining: {product.quantity - product.receivedQuantity}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                          <span>Quantity: {product.quantity}</span>
                         </div>
                       ))}
                     </div>
@@ -340,15 +250,6 @@ const AdminDashboard = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      {order.status === "partially_pending" && (
-                        <Button 
-                          onClick={() => markDraftAsComplete(order.id)}
-                          size="sm"
-                          variant="default"
-                        >
-                          Mark as Complete
-                        </Button>
-                      )}
                       {order.status === "pending" && (
                         <Button 
                           onClick={() => markOrderCompleted(order.id)}

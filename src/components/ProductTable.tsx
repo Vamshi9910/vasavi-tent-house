@@ -19,24 +19,19 @@ const PREDEFINED_PRODUCTS = [
 interface ProductTableProps {
   onProductsUpdate: (products: Product[]) => void;
   initialProducts?: Product[];
-  isDraft?: boolean;
 }
 
-const ProductTable = ({ onProductsUpdate, initialProducts, isDraft = false }: ProductTableProps) => {
+const ProductTable = ({ onProductsUpdate, initialProducts }: ProductTableProps) => {
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
-  const [receivedQuantities, setReceivedQuantities] = useState<{ [key: string]: number }>({});
 
   // Initialize quantities from initial products
   useEffect(() => {
     if (initialProducts) {
       const initialQuantities: { [key: string]: number } = {};
-      const initialReceivedQuantities: { [key: string]: number } = {};
       initialProducts.forEach(product => {
         initialQuantities[product.id] = product.quantity;
-        initialReceivedQuantities[product.id] = product.receivedQuantity || 0;
       });
       setQuantities(initialQuantities);
-      setReceivedQuantities(initialReceivedQuantities);
     }
   }, [initialProducts]);
 
@@ -47,31 +42,17 @@ const ProductTable = ({ onProductsUpdate, initialProducts, isDraft = false }: Pr
     }));
   };
 
-  const handleReceivedQuantityChange = (productId: string, receivedQuantity: number) => {
-    setReceivedQuantities(prev => ({
-      ...prev,
-      [productId]: receivedQuantity
-    }));
-  };
-
   useEffect(() => {
     const selectedProducts: Product[] = PREDEFINED_PRODUCTS
       .filter(product => quantities[product.id] > 0)
       .map(product => ({
         ...product,
         price: 0,
-        quantity: quantities[product.id],
-        receivedQuantity: receivedQuantities[product.id] || 0
+        quantity: quantities[product.id]
       }));
     
     onProductsUpdate(selectedProducts);
-  }, [quantities, receivedQuantities, onProductsUpdate]);
-
-  const getRemainingQuantity = (productId: string) => {
-    const actual = quantities[productId] || 0;
-    const received = receivedQuantities[productId] || 0;
-    return Math.max(0, actual - received);
-  };
+  }, [quantities, onProductsUpdate]);
 
   return (
     <Card>
@@ -87,20 +68,12 @@ const ProductTable = ({ onProductsUpdate, initialProducts, isDraft = false }: Pr
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3">Product Name</th>
-                <th className="text-center p-3">Actual Quantity</th>
-                {isDraft && (
-                  <>
-                    <th className="text-center p-3">Received Quantity</th>
-                    <th className="text-center p-3">Remaining</th>
-                  </>
-                )}
+                <th className="text-center p-3">Quantity</th>
               </tr>
             </thead>
             <tbody>
               {PREDEFINED_PRODUCTS.map((product) => {
                 const quantity = quantities[product.id] || 0;
-                const receivedQuantity = receivedQuantities[product.id] || 0;
-                const remaining = getRemainingQuantity(product.id);
                 
                 return (
                   <tr key={product.id} className="border-b hover:bg-muted/50 transition-colors">
@@ -116,27 +89,6 @@ const ProductTable = ({ onProductsUpdate, initialProducts, isDraft = false }: Pr
                         className="w-20 text-center mx-auto"
                       />
                     </td>
-                    {isDraft && (
-                      <>
-                        <td className="p-3">
-                          <Input
-                            type="number"
-                            min="0"
-                            max={quantity}
-                            step="0.5"
-                            placeholder="0"
-                            value={receivedQuantity || ""}
-                            onChange={(e) => handleReceivedQuantityChange(product.id, parseFloat(e.target.value) || 0)}
-                            className="w-20 text-center mx-auto"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className={`font-medium ${remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                            {remaining}
-                          </span>
-                        </td>
-                      </>
-                    )}
                   </tr>
                 );
               })}
