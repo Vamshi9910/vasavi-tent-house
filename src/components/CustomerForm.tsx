@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,46 +64,6 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
     }));
   };
 
-  const handleSavePartialOrder = () => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    
-    if (editingOrder) {
-      // Update existing order
-      const updatedOrders = orders.map((order: any) => 
-        order.id === editingOrder.id 
-          ? { ...order, ...customerData, status: "partially_pending" }
-          : order
-      );
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
-      
-      toast({
-        title: "Order Updated",
-        description: "Order has been saved as partially pending",
-      });
-    } else {
-      // Create new partial order
-      const newOrder = {
-        ...customerData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        status: "partially_pending"
-      };
-      orders.push(newOrder);
-      localStorage.setItem("orders", JSON.stringify(orders));
-      
-      toast({
-        title: "Order Saved",
-        description: "Order has been saved as partially pending",
-      });
-    }
-
-    if (onOrderSaved) {
-      onOrderSaved();
-    }
-
-    console.log("Order saved as partially pending:", customerData);
-  };
-
   const handleSubmitOrder = () => {
     if (!customerData.name || !customerData.phone || !customerData.village) {
       toast({
@@ -134,7 +95,7 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
     const orders = JSON.parse(localStorage.getItem("orders") || "[]");
     
     if (editingOrder) {
-      // Update existing order to pending
+      // Update existing order
       const updatedOrders = orders.map((order: any) => 
         order.id === editingOrder.id 
           ? { ...order, ...customerData, status: "pending" }
@@ -142,7 +103,7 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
       );
       localStorage.setItem("orders", JSON.stringify(updatedOrders));
     } else {
-      // Create new pending order
+      // Create new order
       const newOrder = {
         ...customerData,
         id: Date.now().toString(),
@@ -157,11 +118,10 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
     
     toast({
       title: "Order Registered Successfully!",
-      description: "WhatsApp and SMS notifications will be sent to the customer",
+      description: "Order has been saved",
     });
 
     console.log("Order submitted:", customerData);
-    console.log("Triggering WhatsApp and SMS for:", customerData.phone);
   };
 
   const handleNewOrder = () => {
@@ -181,8 +141,6 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
   if (showSummary) {
     return <OrderSummary customerData={customerData} onNewOrder={handleNewOrder} />;
   }
-
-  const isDraftOrder = editingOrder?.status === "partially_pending";
 
   return (
     <div className="space-y-6">
@@ -227,7 +185,6 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
       <ProductTable 
         onProductsUpdate={handleProductsUpdate} 
         initialProducts={editingOrder?.products}
-        isDraft={isDraftOrder}
       />
 
       <Card>
@@ -252,20 +209,13 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
               </span>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <Button 
-              onClick={handleSavePartialOrder}
-              variant="outline"
-              className="flex-1"
-            >
-              Save as Draft
-            </Button>
+          <div className="mt-4">
             <Button 
               onClick={handleSubmitOrder}
-              className="flex-1"
+              className="w-full"
               disabled={customerData.totalBill === 0 || customerData.products.length === 0}
             >
-              {editingOrder ? "Update & Send Notifications" : "Register Order & Send Notifications"}
+              {editingOrder ? "Update Order" : "Register Order"}
             </Button>
           </div>
         </CardContent>
@@ -275,3 +225,4 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
 };
 
 export default CustomerForm;
+
