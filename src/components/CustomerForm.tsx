@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import ProductTable from "./ProductTable";
 import OrderSummary from "./OrderSummary";
+import { orderService, OrderData } from "@/services/orderService";
 
 export interface Product {
   id: string;
@@ -27,7 +26,7 @@ export interface CustomerData {
 }
 
 interface CustomerFormProps {
-  editingOrder?: CustomerData & { id: string; status: string };
+  editingOrder?: OrderData & { id: string };
   onOrderSaved?: () => void;
 }
 
@@ -42,6 +41,7 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
   });
 
   const [showSummary, setShowSummary] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCustomerInfoChange = (field: string, value: string) => {
     setCustomerData(prev => ({
@@ -64,7 +64,7 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
     }));
   };
 
-  const handleSubmitOrder = () => {
+  const handleSubmitOrder = async () => {
     if (!customerData.name || !customerData.phone || !customerData.village) {
       toast({
         title: "Missing Information",
@@ -92,36 +92,38 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
       return;
     }
 
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    
-    if (editingOrder) {
-      // Update existing order
-      const updatedOrders = orders.map((order: any) => 
-        order.id === editingOrder.id 
-          ? { ...order, ...customerData, status: "pending" }
-          : order
-      );
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    } else {
-      // Create new order
-      const newOrder = {
-        ...customerData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        status: "pending"
-      };
-      orders.push(newOrder);
-      localStorage.setItem("orders", JSON.stringify(orders));
+    setIsSubmitting(true);
+
+    try {
+      if (editingOrder) {
+        // Update existing order
+        await orderService.updateOrder(editingOrder.id, {
+          ...customerData,
+          status: "pending"
+        });
+      } else {
+        // Create new order
+        await orderService.createOrder(customerData);
+      }
+
+      setShowSummary(true);
+      
+      toast({
+        title: "Order Registered Successfully!",
+        description: "Order has been saved to database",
+      });
+
+      console.log("Order submitted:", customerData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save order. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Error submitting order:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setShowSummary(true);
-    
-    toast({
-      title: "Order Registered Successfully!",
-      description: "Order has been saved",
-    });
-
-    console.log("Order submitted:", customerData);
   };
 
   const handleNewOrder = () => {
@@ -213,9 +215,9 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
             <Button 
               onClick={handleSubmitOrder}
               className="w-full"
-              disabled={customerData.totalBill === 0 || customerData.products.length === 0}
+              disabled={customerData.totalBill === 0 || customerData.products.length === 0 || isSubmitting}
             >
-              {editingOrder ? "Update Order" : "Register Order"}
+              {isSubmitting ? "Saving..." : (editingOrder ? "Update Order" : "Register Order")}
             </Button>
           </div>
         </CardContent>
@@ -225,4 +227,3 @@ const CustomerForm = ({ editingOrder, onOrderSaved }: CustomerFormProps) => {
 };
 
 export default CustomerForm;
-

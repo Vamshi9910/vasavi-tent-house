@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Users, ShoppingCart, Clock, CheckCircle2, Edit } from "lucide-react";
 import CustomerForm from "./CustomerForm";
+import { orderService, OrderData } from "@/services/orderService";
 
 interface Order {
   id: string;
@@ -26,47 +26,60 @@ interface Order {
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadOrders = () => {
-      const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-      setOrders(savedOrders);
-    };
-
-    loadOrders();
-    const interval = setInterval(loadOrders, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const markOrderCompleted = (orderId: string) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: "completed" as const }
-        : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    
-    toast({
-      title: "Order Marked as Completed",
-      description: "Order status updated successfully",
-    });
-
-    console.log("Order marked as completed:", orderId);
+  const loadOrders = async () => {
+    try {
+      const ordersData = await orderService.getOrders();
+      setOrders(ordersData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load orders",
+        variant: "destructive"
+      });
+      console.error("Error loading orders:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEditOrder = (order: Order) => {
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const markOrderCompleted = async (orderId: string) => {
+    try {
+      await orderService.updateOrderStatus(orderId, "completed");
+      await loadOrders(); // Refresh the orders list
+      
+      toast({
+        title: "Order Marked as Completed",
+        description: "Order status updated successfully",
+      });
+
+      console.log("Order marked as completed:", orderId);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive"
+      });
+      console.error("Error updating order status:", error);
+    }
+  };
+
+  const handleEditOrder = (order: OrderData) => {
     setEditingOrder(order);
   };
 
-  const handleOrderSaved = () => {
+  const handleOrderSaved = async () => {
     setEditingOrder(null);
-    const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(savedOrders);
+    await loadOrders(); // Refresh the orders list
   };
 
   const filteredOrders = orders.filter(order => {
@@ -99,6 +112,14 @@ const AdminDashboard = () => {
           editingOrder={editingOrder} 
           onOrderSaved={handleOrderSaved}
         />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg">Loading orders...</div>
       </div>
     );
   }
@@ -220,7 +241,7 @@ const AdminDashboard = () => {
                       {order.status}
                     </Badge>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -252,7 +273,7 @@ const AdminDashboard = () => {
                       </Button>
                       {order.status === "pending" && (
                         <Button 
-                          onClick={() => markOrderCompleted(order.id)}
+                          onClick={() => markOrderCompleted(order.id!)}
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
                         >
