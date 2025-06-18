@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import {
   Clock, 
   CheckCircle2, 
   Edit, 
-  Delete,
+  Trash2,
   AlertTriangle 
 } from "lucide-react";
 import {
@@ -312,9 +313,9 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   
-                  <div className="flex justify-between items-center pt-2 border-t">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 border-t gap-2">
                     <span className="font-bold text-lg">Total: ₹{order.totalBill.toFixed(2)}</span>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button 
                         onClick={() => handleEditOrder(order)}
                         size="sm"
@@ -329,7 +330,7 @@ const AdminDashboard = () => {
                             size="sm"
                             variant="destructive"
                           >
-                            <Delete className="h-4 w-4 mr-1" />
+                            <Trash2 className="h-4 w-4 mr-1" />
                             Delete
                           </Button>
                         </AlertDialogTrigger>

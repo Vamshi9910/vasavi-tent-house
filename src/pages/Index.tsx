@@ -10,8 +10,11 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">OrderFlow Pro</h1>
-          <p className="text-muted-foreground text-lg">Customer Order Management & Automated Messaging</p>
+          <h1 className="text-4xl font-bold text-primary mb-2">Vasavi Tent House and Decorations</h1>
+          <div className="text-muted-foreground text-lg space-y-1">
+            <p>Customer Order Management & Automated Messaging</p>
+            <p className="text-base">Cherupally Village, Dist Mulugu - 506172</p>
+          </div>
         </header>
 
         <Tabs defaultValue="customer" className="w-full max-w-6xl mx-auto">
