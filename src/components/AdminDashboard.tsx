@@ -209,8 +209,15 @@ const AdminDashboard = () => {
             .footer {
               margin-top: 40px;
               text-align: center;
+              font-size: 14px;
+              color: #7F1D1D;
+              font-weight: bold;
+            }
+            .footer-note {
+              margin-top: 10px;
               font-size: 12px;
               color: #666;
+              font-weight: normal;
             }
             @media print {
               body { margin: 0; }
@@ -233,7 +240,6 @@ const AdminDashboard = () => {
             </div>
             <div class="customer-info">
               <span><strong>Phone:</strong> ${order.phone}</span>
-              <span><strong>Status:</strong> ${order.status.toUpperCase()}</span>
             </div>
             <div class="customer-info">
               <span><strong>Village:</strong> ${order.village}</span>
@@ -246,8 +252,6 @@ const AdminDashboard = () => {
                 <th>S.No</th>
                 <th>Item</th>
                 <th>Quantity</th>
-                <th>Price (₹)</th>
-                <th>Total (₹)</th>
               </tr>
             </thead>
             <tbody>
@@ -256,8 +260,6 @@ const AdminDashboard = () => {
                   <td>${index + 1}</td>
                   <td>${product.name}</td>
                   <td>${product.quantity}</td>
-                  <td>₹${product.price.toFixed(2)}</td>
-                  <td>₹${(product.quantity * product.price).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -268,8 +270,8 @@ const AdminDashboard = () => {
           </div>
 
           <div class="footer">
-            <p>Thank you for your business!</p>
-            <p>This is a computer generated receipt.</p>
+            <p>Thank you for choosing Vasavi Tent House and Decorations!</p>
+            <p class="footer-note">This is a computer generated receipt.</p>
           </div>
         </body>
         </html>
