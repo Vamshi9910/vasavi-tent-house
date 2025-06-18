@@ -13,7 +13,8 @@ import {
   CheckCircle2, 
   Edit, 
   Trash2,
-  AlertTriangle 
+  AlertTriangle,
+  Printer
 } from "lucide-react";
 import {
   AlertDialog,
@@ -125,6 +126,159 @@ const AdminDashboard = () => {
   const handleOrderSaved = async () => {
     setEditingOrder(null);
     await loadOrders(); // Refresh the orders list
+  };
+
+  const handlePrintReceipt = (order: OrderData) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receipt - ${order.name}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              color: #333;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .logo {
+              width: 100px;
+              height: auto;
+              margin-bottom: 10px;
+            }
+            .company-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #7F1D1D;
+              margin: 10px 0;
+            }
+            .company-info {
+              font-size: 14px;
+              color: #666;
+              margin: 5px 0;
+            }
+            .customer-section {
+              margin: 30px 0;
+              border-bottom: 2px solid #7F1D1D;
+              padding-bottom: 15px;
+            }
+            .customer-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #7F1D1D;
+              margin-bottom: 10px;
+            }
+            .customer-info {
+              display: flex;
+              justify-content: space-between;
+              margin: 5px 0;
+            }
+            .products-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            .products-table th,
+            .products-table td {
+              border: 1px solid #ddd;
+              padding: 12px;
+              text-align: left;
+            }
+            .products-table th {
+              background-color: #7F1D1D;
+              color: white;
+              font-weight: bold;
+            }
+            .products-table tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .total-section {
+              margin-top: 20px;
+              text-align: right;
+            }
+            .total-amount {
+              font-size: 20px;
+              font-weight: bold;
+              color: #7F1D1D;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img src="/lovable-uploads/b00cf27b-7f76-4d35-8366-f010d8803060.png" alt="Company Logo" class="logo">
+            <div class="company-name">Vasavi Tent House and Decorations</div>
+            <div class="company-info">Cherupally Village, Dist Mulugu - 506172</div>
+            <div class="company-info">Phone: 9121154704</div>
+          </div>
+
+          <div class="customer-section">
+            <div class="customer-title">Customer Details</div>
+            <div class="customer-info">
+              <span><strong>Name:</strong> ${order.name}</span>
+              <span><strong>Date:</strong> ${order.createdAt ? formatDate(order.createdAt) : 'N/A'}</span>
+            </div>
+            <div class="customer-info">
+              <span><strong>Phone:</strong> ${order.phone}</span>
+              <span><strong>Status:</strong> ${order.status.toUpperCase()}</span>
+            </div>
+            <div class="customer-info">
+              <span><strong>Village:</strong> ${order.village}</span>
+            </div>
+          </div>
+
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Price (₹)</th>
+                <th>Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.products.map((product, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${product.name}</td>
+                  <td>${product.quantity}</td>
+                  <td>₹${product.price.toFixed(2)}</td>
+                  <td>₹${(product.quantity * product.price).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <div class="total-amount">Total Amount: ₹${order.totalBill.toFixed(2)}</div>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for your business!</p>
+            <p>This is a computer generated receipt.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(receiptHTML);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -316,6 +470,15 @@ const AdminDashboard = () => {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 border-t gap-2">
                     <span className="font-bold text-lg">Total: ₹{order.totalBill.toFixed(2)}</span>
                     <div className="flex flex-wrap gap-2">
+                      <Button 
+                        onClick={() => handlePrintReceipt(order)}
+                        size="sm"
+                        variant="outline"
+                        className="bg-blue-50 hover:bg-blue-100 border-blue-200"
+                      >
+                        <Printer className="h-4 w-4 mr-1" />
+                        Print
+                      </Button>
                       <Button 
                         onClick={() => handleEditOrder(order)}
                         size="sm"
