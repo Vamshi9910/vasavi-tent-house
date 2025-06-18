@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/components/CustomerForm";
 
@@ -156,6 +155,29 @@ export const orderService = {
       if (productsError) throw productsError;
     } catch (error) {
       console.error('Error updating order:', error);
+      throw error;
+    }
+  },
+
+  async deleteOrder(orderId: string) {
+    try {
+      // Delete order products first (due to foreign key constraint)
+      const { error: productsError } = await supabase
+        .from('order_products')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (productsError) throw productsError;
+
+      // Delete the main order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (orderError) throw orderError;
+    } catch (error) {
+      console.error('Error deleting order:', error);
       throw error;
     }
   }

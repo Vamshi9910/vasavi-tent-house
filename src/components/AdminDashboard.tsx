@@ -4,7 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Users, ShoppingCart, Clock, CheckCircle2, Edit } from "lucide-react";
+import { 
+  Search, 
+  Users, 
+  ShoppingCart, 
+  Clock, 
+  CheckCircle2, 
+  Edit, 
+  Delete,
+  AlertTriangle 
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import CustomerForm from "./CustomerForm";
 import { orderService, OrderData } from "@/services/orderService";
 
@@ -73,6 +93,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      await orderService.deleteOrder(orderId);
+      await loadOrders(); // Refresh the orders list
+      
+      toast({
+        title: "Order Deleted",
+        description: "Order has been successfully deleted",
+      });
+
+      console.log("Order deleted:", orderId);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete order",
+        variant: "destructive"
+      });
+      console.error("Error deleting order:", error);
+    }
+  };
+
   const handleEditOrder = (order: OrderData) => {
     // Ensure the order has an id before setting it for editing
     if (order.id) {
@@ -83,6 +124,14 @@ const AdminDashboard = () => {
   const handleOrderSaved = async () => {
     setEditingOrder(null);
     await loadOrders(); // Refresh the orders list
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const filteredOrders = orders.filter(order => {
@@ -244,7 +293,7 @@ const AdminDashboard = () => {
                       {order.status}
                     </Badge>
                     <p className="text-sm text-muted-foreground">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                      {order.createdAt ? formatDate(order.createdAt) : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -274,6 +323,38 @@ const AdminDashboard = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            size="sm"
+                            variant="destructive"
+                          >
+                            <Delete className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5 text-red-500" />
+                              Delete Order
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete the order for <strong>{order.name}</strong>? 
+                              This action cannot be undone and will permanently remove all order data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => order.id && handleDeleteOrder(order.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Order
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       {order.status === "pending" && order.id && (
                         <Button 
                           onClick={() => markOrderCompleted(order.id!)}
