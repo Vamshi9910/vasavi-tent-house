@@ -29,7 +29,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "completed">("all");
-  const [editingOrder, setEditingOrder] = useState<OrderData | null>(null);
+  const [editingOrder, setEditingOrder] = useState<(OrderData & { id: string }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadOrders = async () => {
@@ -74,7 +74,10 @@ const AdminDashboard = () => {
   };
 
   const handleEditOrder = (order: OrderData) => {
-    setEditingOrder(order);
+    // Ensure the order has an id before setting it for editing
+    if (order.id) {
+      setEditingOrder(order as OrderData & { id: string });
+    }
   };
 
   const handleOrderSaved = async () => {
@@ -271,7 +274,7 @@ const AdminDashboard = () => {
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      {order.status === "pending" && (
+                      {order.status === "pending" && order.id && (
                         <Button 
                           onClick={() => markOrderCompleted(order.id!)}
                           size="sm"

@@ -54,7 +54,7 @@ export const orderService = {
     }
   },
 
-  async getOrders() {
+  async getOrders(): Promise<OrderData[]> {
     try {
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
@@ -79,7 +79,7 @@ export const orderService = {
             phone: order.phone,
             village: order.village,
             totalBill: Number(order.total_bill),
-            status: order.status,
+            status: order.status as "pending" | "completed", // Type assertion to fix the status type
             createdAt: order.created_at,
             products: products.map(p => ({
               id: p.product_id,
@@ -87,7 +87,7 @@ export const orderService = {
               quantity: Number(p.quantity),
               price: Number(p.price)
             }))
-          };
+          } as OrderData;
         })
       );
 
